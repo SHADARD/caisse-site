@@ -125,4 +125,4 @@ Nouveau : « Tout réinitialiser » réservé au super utilisateur, avec phrase 
 
 La sauvegarde mensuelle est prévue le 10 à 00 h 05 à Kinshasa, pour la période du 10 au 9 terminée. Elle ne déclenche aucun reset automatique. Le PDF de synthèse de tous les sites est conservé dans le stockage Supabase privé et apparaît dans « Historique et PDF ».
 
-**Activation nécessaire :** exécuter `migrations/002-archives-reset.sql`, configurer `ARCHIVE_CRON_SECRET` et déployer le Worker planifié. Suivre `docs/archives-et-reset.md`. Le simple envoi du code sur GitHub n’active pas la base ou la planification.
+**Activé le 18 octobre 2026 :** migrations 002/003 installées, stockage privé vérifié et sauvegarde mensuelle programmée dans Supabase Cron au 10 à 00 h 05 (Kinshasa). Test réel PDF/JSON réussi sans réinitialiser les données. La fonction Supabase remplace le Worker Cloudflare alternatif. Voir `docs/archives-et-reset.md` pour le déploiement et les contrôles.
