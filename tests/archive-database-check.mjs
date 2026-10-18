@@ -24,6 +24,16 @@ try{
  await db.exec(await readFile(new URL('../migrations/002-archives-reset.sql',import.meta.url),'utf8'));
  // La migration doit être réexécutable sans supprimer les données.
  await db.exec(await readFile(new URL('../migrations/002-archives-reset.sql',import.meta.url),'utf8'));
+ // Reproduit la procédure antérieure, puis vérifie la migration de correction.
+ const oldFunction=(await db.query("select pg_get_functiondef('public.finish_business_archive(uuid,text,text,integer,jsonb)'::regprocedure) as sql")).rows[0].sql.replace('delete from public.reports where id in (select id from public.archived_reports where archive_id=p_token);','delete from public.reports;').replace('delete from public.periods where site_id in (select id from public.sites);','delete from public.periods;');
+ await db.exec(oldFunction);
+ // Vérifie aussi la correction sur une installation existante.
+ const {readdir}=await import('node:fs/promises');
+ const migration=(await readdir(new URL('../supabase/migrations/',import.meta.url))).find(n=>n.endsWith('_reset_explicit_delete_scope.sql'));
+ await db.exec(await readFile(new URL('../supabase/migrations/'+migration,import.meta.url),'utf8'));
+ const definition=(await db.query("select pg_get_functiondef('public.finish_business_archive(uuid,text,text,integer,jsonb)'::regprocedure) as sql")).rows[0].sql;
+ assert.match(definition,/delete from public.reports where id in/);
+ assert.match(definition,/delete from public.periods where site_id in/);
  const site=(await db.query("insert into public.sites(name) values('Site A') returning id")).rows[0].id;
  for(const [kind,id] of Object.entries(uid)){
   await db.query('insert into auth.users(id) values($1)',[id]);

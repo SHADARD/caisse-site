@@ -145,8 +145,8 @@ begin
   perform set_config('app.archive_token',p_token::text,true);
   insert into public.archived_reports(id,site_id,report_date,data,archive_id)
    select r.id,r.site_id,r.report_date,to_jsonb(r),p_token from public.reports r on conflict(id) do nothing;
-  delete from public.reports; get diagnostics removed=row_count;
-  delete from public.periods;
+  delete from public.reports where id in (select id from public.archived_reports where archive_id=p_token); get diagnostics removed=row_count;
+  delete from public.periods where site_id in (select id from public.sites);
   insert into public.periods(site_id,opened_at) select id,clock_timestamp() from public.sites;
  end if;
  update public.archive_maintenance set token=null,expires_at=null where id=1;
