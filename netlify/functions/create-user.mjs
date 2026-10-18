@@ -1,7 +1,7 @@
 const response=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
-export default async function(request){
+export default async function(request,env=globalThis.process?.env||{}){
  if(request.method!=='POST')return response(405,{error:'Méthode non autorisée.'});
- const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ const url=env.SUPABASE_URL,key=env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return response(503,{error:'La création des comptes doit être configurée sur le serveur.'});
  const bearer=request.headers.get('authorization')||'';
  if(!bearer.startsWith('Bearer '))return response(401,{error:'Connexion requise.'});

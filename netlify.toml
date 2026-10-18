@@ -9,3 +9,9 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
     Content-Security-Policy = "default-src 'self'; script-src 'self' https://esm.sh; style-src 'self'; connect-src 'self' https://esm.sh https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+
+[[redirects]]
+  from = "/api/create-user"
+  to = "/.netlify/functions/create-user"
+  status = 200
+  force = true

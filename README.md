@@ -75,3 +75,18 @@ Le fichier aperçu est généré depuis les sources et ne doit pas être utilis�
 ## Photo d’accueil
 
 Ajouter le fichier **image1.jpg** (tout en minuscules, extension .jpg) à la racine du dépôt, à côté de `index.html`. L’application l’affichera automatiquement au prochain déploiement. En son absence, un visuel graphique reste affiché. Choisir une photo sans informations confidentielles, puisque le dépôt est public. L’aperçu autonome conserve le visuel graphique si la photo n’est pas placée dans le même dossier.
+
+## Déployer sur Cloudflare Pages (alternative à Netlify)
+
+Le même dépôt reste compatible avec les deux hébergeurs. La création des comptes utilise `/api/create-user` : une Pages Function sur Cloudflare, une redirection vers la fonction Netlify sur Netlify.
+
+1. Créer un compte Cloudflare gratuit, puis ouvrir **Workers & Pages** et choisir la création d’un projet **Pages** avec import Git (ne pas choisir un projet Workers).
+2. Autoriser le dépôt GitHub **SHADARD/caisse-site** et sélectionner la branche **main**.
+3. Framework preset : **None**. Build command : **node build-cloudflare.mjs**. Build output directory : **dist**. Root directory : laisser vide.
+4. Déployer. Une adresse `*.pages.dev` sera attribuée. Sans configuration Supabase, ce sera la démonstration, pas une application de production avec comptes réels.
+5. Pour activer les comptes, préparer Supabase selon les instructions ci-dessus, renseigner les clés publiques dans `config.js`, puis définir **SUPABASE_URL** et le secret **SUPABASE_SERVICE_ROLE_KEY** dans les variables/secrets de production du projet Cloudflare Pages, jamais dans GitHub. Redéployer après configuration.
+6. Vérifier les permissions et les opérations réelles avec les scénarios d’intégration, puis transmettre les identifiants aux utilisateurs séparément.
+
+`node build-cloudflare.mjs` prépare uniquement les fichiers publics dans `dist/`. Les fonctions sont dans `functions/` à la racine et le code serveur partagé reste hors de `dist/`. Les tests, SQL et documentation ne sont pas servis par la version Cloudflare. La photo `image1.jpg`, si présente à la racine, est copiée pendant le build.
+
+L’offre gratuite comporte des quotas. Ne pas activer d’offre payante sans décision explicite. Si Netlify est encore relié au dépôt, suspendre ses déploiements automatiques pendant cette phase pour éviter un déploiement supplémentaire lors de la reprise du cycle.
