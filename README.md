@@ -98,3 +98,7 @@ L’application peut désormais charger `/api/config` : définir `SUPABASE_URL` 
 ## Saisir les jours précédents dans la première période
 
 Sur une base déjà installée, exécuter seulement `migrations/001-premiere-periode.sql` dans SQL Editor. Ne pas réexécuter `schema.sql`. Cette migration remplace la validation des dates sans supprimer de données. La première période accepte les dates passées ; toute période qui suit une clôture refuse les dates antérieures à son ouverture. Les dates futures et les doublons par jour/site restent interdits. Le début affiché tient compte du premier rapport antérieur saisi.
+
+## Périodes mensuelles du 10 au 9
+
+Le tableau de bord des administrateurs et du super utilisateur distingue désormais les cumuls de caisse ouverte et le rapport mensuel du 10 au 9 inclus. Le choix du site ou « Tous les sites (All) » s’applique aux deux. Le rapport mensuel additionne les cinq champs de tous les rapports datés de cette période, même si leur caisse a été clôturée. Les rapports listés pour ces rôles suivent la période mensuelle sélectionnée et restent imprimables. Les périodes passées ayant des rapports sont sélectionnables. Aucun effacement ni reset mensuel automatique : un nouveau cycle commence par sélection de dates. Le calcul des parts des associés reste à définir. Les modifications/suppressions par le super utilisateur recalculent aussi les rapports mensuels concernés ; les totaux ne sont pas figés. Aucun changement SQL nécessaire.

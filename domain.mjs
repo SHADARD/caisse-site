@@ -18,3 +18,17 @@ export function openPeriodReports(reports,periods,siteId=null){
  const openPeriods=new Map(periods.filter(p=>!p.closed_at&&(siteId===null||p.site_id===siteId)).map(p=>[p.id,p.site_id]));
  return reports.filter(r=>openPeriods.has(r.period_id)&&openPeriods.get(r.period_id)===r.site_id);
 }
+
+export function reportingCycle(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Date invalide.');
+ const date=new Date(day+'T12:00:00Z');
+ if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==day)throw Error('Date invalide.');
+ const year=date.getUTCFullYear(),month=date.getUTCMonth()-(date.getUTCDate()<10?1:0);
+ const start=new Date(Date.UTC(year,month,10,12));
+ const next=new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth()+1,10,12));
+ const end=new Date(next.getTime()-86400000);
+ return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10),endExclusive:next.toISOString().slice(0,10)};
+}
+export function cycleReports(reports,cycle,siteId=null){
+ return reports.filter(r=>(siteId===null||r.site_id===siteId)&&r.report_date>=cycle.start&&r.report_date<cycle.endExclusive);
+}

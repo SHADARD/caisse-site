@@ -1,9 +1,9 @@
-import {fields,totals,validateReport,periodFloor,openPeriodReports} from './domain.mjs?v=cumuls-1';
+import {fields,totals,validateReport,periodFloor,openPeriodReports,reportingCycle,cycleReports} from './domain.mjs?v=cycles-10-09-1';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kinshasa'}), date=s=>new Date(s.length===10?s+'T12:00:00Z':s).toLocaleDateString('fr-CD',{timeZone:'Africa/Kinshasa'}), fmt=(n,g=false)=>new Intl.NumberFormat('fr-CD',{maximumFractionDigits:g?3:2}).format(n);
 const labels=['Connexion totale','Argent M-pesa total','Commission M-pesa (%) totale','Montant achat or total','Poids or total'];
 let cfg=window.CAISSE_CONFIG||{},configured=Boolean(cfg.supabaseUrl&&cfg.supabaseKey);const demo=false;let configurationError='La connexion sera disponible après activation des comptes par votre responsable.';
-let db,profile,sites=[],periods=[],reports=[],editing=null,loading=false;
+let db,profile,sites=[],periods=[],reports=[],editing=null,loading=false,selectedCycle=null;
 function periodStart(p){const initial=new Date(p.opened_at).toLocaleDateString('en-CA',{timeZone:'Africa/Kinshasa'});return reports.filter(r=>r.period_id===p.id).reduce((start,r)=>r.report_date<start?r.report_date:start,initial);}
 const site=()=>sites.find(s=>s.id===$('#site').value), period=()=>periods.find(p=>p.site_id===site()?.id&&!p.closed_at), canReset=()=>['admin','super'].includes(profile?.role);
 
@@ -19,8 +19,21 @@ function render(){
  const p=period(), rs=openPeriodReports(reports,periods,sid), t=totals(rs);
  const openIds=new Set(periods.filter(p=>!p.closed_at).map(p=>p.id));
  const scopedReports=reports.filter(r=>all||r.site_id===sid);
+ const monthlyAccess=canReset();
+ if(!selectedCycle)selectedCycle=reportingCycle(today()).start;
+ const cycle=reportingCycle(selectedCycle);
+ const knownCycles=[...new Set([reportingCycle(today()).start,selectedCycle,...reports.map(r=>reportingCycle(r.report_date).start)])].sort().reverse();
+ $('#report-cycle').innerHTML=knownCycles.map(start=>{const range=reportingCycle(start);return `<option value="${start}">${date(range.start)} au ${date(range.end)}</option>`;}).join('');
+ $('#report-cycle').value=selectedCycle;
+ $('#monthly-panel').hidden=!monthlyAccess;
+ const monthly=cycleReports(reports,cycle,sid),mt=totals(monthly);
+ $('#monthly-title').textContent=all?'Rapport mensuel · Tous les sites':'Rapport mensuel · '+(site()?.name||'Site');
+ $('#monthly-count').textContent=`${monthly.length} rapport(s) · Caisses ouvertes et clôturées incluses`;
+ $('#monthly-stats').innerHTML=fields.map((k,i)=>`<article class="stat"><small>${labels[i]}</small><strong>${fmt(mt[k],i===4)}</strong><span>${i===4?'GRAMMES':'FRANCS CONGOLAIS'}</span></article>`).join('');
+ $('#reports-title').textContent=monthlyAccess?`Rapports du ${date(cycle.start)} au ${date(cycle.end)}`:'Rapports journaliers';
+
  const openCount=periods.filter(p=>!p.closed_at&&(all||p.site_id===sid)).length;
- $('#totals-title').textContent=all?'Cumuls de tous les sites':'Les cumuls à jour';
+ $('#totals-title').textContent=all?'Cumuls des caisses ouvertes · Tous les sites':'Cumuls de la caisse ouverte';
  $('#period-start').textContent=all?`${openCount} caisse(s) ouverte(s) · hors caisses clôturées`:p?'Début : '+date(periodStart(p)):'Aucune période ouverte';
  $('#stats').innerHTML=fields.map((k,i)=>`<article class="stat"><small>${labels[i]}</small><strong>${fmt(t[k],i===4)}</strong><span>${i===4?'GRAMMES':'FRANCS CONGOLAIS'}</span></article>`).join('');
  const showEntry=profile.role==='site'||(profile.role==='super'&&Boolean(editing));
@@ -33,7 +46,7 @@ function render(){
  $('#role-label').textContent={site:'Compte de site',admin:'Administrateur · lecture et clôture',super:'Super utilisateur · accès complet'}[profile.role];
  $('.edit-col').hidden=profile.role!=='super';$('.site-col').hidden=!all;
  const filter=$('#date-filter').value;
- $('#reports').innerHTML=scopedReports.filter(r=>!filter||r.report_date===filter).sort((a,b)=>b.report_date.localeCompare(a.report_date)).map(r=>`<tr><td>${date(r.report_date)} ${openIds.has(r.period_id)?'':'<small>· clôturé</small>'}</td>${all?`<td>${esc(sites.find(s=>s.id===r.site_id)?.name||'—')}</td>`:''}${fields.map((k,i)=>`<td>${fmt(r[k],i===4)} ${i===4?'g':'FC'}</td>`).join('')}${profile.role==='super'?`<td><button data-edit="${esc(r.id)}">Modifier</button><button data-delete="${esc(r.id)}">Supprimer</button></td>`:''}</tr>`).join('')||'<tr><td colspan="8" class="empty">Aucun rapport pour cette sélection.</td></tr>';
+ $('#reports').innerHTML=(monthlyAccess?monthly:scopedReports).filter(r=>!filter||r.report_date===filter).sort((a,b)=>b.report_date.localeCompare(a.report_date)).map(r=>`<tr><td>${date(r.report_date)} ${openIds.has(r.period_id)?'':'<small>· clôturé</small>'}</td>${all?`<td>${esc(sites.find(s=>s.id===r.site_id)?.name||'—')}</td>`:''}${fields.map((k,i)=>`<td>${fmt(r[k],i===4)} ${i===4?'g':'FC'}</td>`).join('')}${profile.role==='super'?`<td><button data-edit="${esc(r.id)}">Modifier</button><button data-delete="${esc(r.id)}">Supprimer</button></td>`:''}</tr>`).join('')||'<tr><td colspan="8" class="empty">Aucun rapport pour cette sélection.</td></tr>';
  $('#history').innerHTML=periods.filter(p=>(all||p.site_id===sid)&&p.closed_at).sort((a,b)=>b.closed_at.localeCompare(a.closed_at)).map(p=>{const rr=reports.filter(r=>r.period_id===p.id),tt=totals(rr);return `<article class="panel"><h2>${esc(sites.find(s=>s.id===p.site_id)?.name||'—')} · ${date(periodStart(p))} → ${date(p.closed_at)}</h2><p>Clôture : ${esc(new Date(p.closed_at).toLocaleString('fr-CD',{timeZone:'Africa/Kinshasa'}))} (Kinshasa) · Par ${esc(p.closed_by_name||p.closed_by||'—')} · ${rr.length} rapport(s)</p><div class="stats">${fields.map((k,i)=>`<div class="stat"><small>${labels[i]}</small><strong>${fmt(tt[k],i===4)}</strong><span>${i===4?'g':'FC'}</span></div>`).join('')}</div></article>`;}).join('')||'<div class="panel empty">Aucune caisse clôturée pour cette sélection.</div>';
  $('#subtitle').textContent=all?'Tous les sites · Cumuls des caisses ouvertes et rapports d’activité.':site()?`${site().name} · Rapports d’activité et suivi de caisse.`:'Aucun site attribué. Contactez le super utilisateur.';
 }
@@ -41,7 +54,7 @@ function render(){
 async function allRows(table,order){let rows=[],offset=0;for(;;){const page=await result(db.from(table).select('*').order(order,{ascending:false}).order('id').range(offset,offset+499));rows.push(...page);if(page.length<500)return rows;offset+=500;}}
 async function refresh(){if(!demo){[periods,reports]=await Promise.all([allRows('periods','opened_at'),allRows('reports','report_date')]);}render();}
 function selectView(view){for(const id of ['dashboard','history','guide','accounts'])$('#'+id).hidden=id!==view;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent={dashboard:'Tableau de bord',history:'Historique des caisses',guide:'Guide d’utilisation',accounts:'Sites et utilisateurs'}[view];}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>selectView(b.dataset.view));$('#site').onchange=()=>{clearEdit();$('#date-filter').value='';render();};$('#date-filter').onchange=render;$('#print').onclick=()=>window.print();$('#cancel-edit').onclick=()=>{clearEdit();render();};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>selectView(b.dataset.view));$('#site').onchange=()=>{clearEdit();$('#date-filter').value='';render();};$('#date-filter').onchange=render;$('#report-cycle').onchange=()=>{selectedCycle=$('#report-cycle').value;$('#date-filter').value='';render();};$('#print').onclick=()=>window.print();$('#cancel-edit').onclick=()=>{clearEdit();render();};
 $('#report-form').onsubmit=e=>{e.preventDefault();busy(async()=>{const r=Object.fromEntries(new FormData(e.target));const target=editing?periods.find(p=>p.id===reports.find(r=>r.id===editing).period_id):period();if(!target)throw Error('Aucune période ouverte.');validateReport(r,periodFloor(target,periods));fields.forEach(k=>r[k]=Number(r[k]));if(demo){if(reports.some(x=>x.site_id===site().id&&x.report_date===r.report_date&&x.id!==editing))throw Error('Un rapport existe déjà pour cette date et ce site.');if(editing)Object.assign(reports.find(x=>x.id===editing),r);else reports.push({...r,id:crypto.randomUUID(),site_id:site().id,period_id:target.id});}else if(editing)await result(db.from('reports').update(r).eq('id',editing));else await result(db.rpc('add_report',{p_site:site().id,p_date:r.report_date,p_connection:r.connection,p_mpesa:r.mpesa,p_commission:r.commission,p_gold_cost:r.gold_cost,p_gold_weight:r.gold_weight}));clearEdit();await refresh();notice(demo?'Rapport de test ajouté. Les données seront perdues au rechargement.':'Rapport enregistré. Les cumuls sont à jour.');});};
 $('#reports').onclick=e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit){const r=reports.find(r=>r.id===edit.dataset.edit);$('#site').value=r.site_id;editing=r.id;render();for(const k of ['report_date',...fields])$('#report-form').elements[k].value=r[k];$('#save').textContent='Enregistrer les modifications';$('#form-title').textContent='Modifier le rapport';$('#cancel-edit').hidden=false;$('#entry-panel').scrollIntoView({behavior:'smooth'});}if(del){if(confirm('Supprimer définitivement ce rapport ? Les cumuls seront recalculés.'))busy(async()=>{if(demo)reports=reports.filter(r=>r.id!==del.dataset.delete);else await result(db.from('reports').delete().eq('id',del.dataset.delete));clearEdit();await refresh();notice('Rapport supprimé.');});}};
 $('#reset').onclick=()=>{if(!period())return notice('Aucune période ouverte.');if(confirm(`Confirmer la collecte de toute la caisse de ${site().name} ? La période sera clôturée et les cumuls repartiront à zéro. Les rapports resteront dans l’historique.`))busy(async()=>{if(demo){const stamp=new Date().toISOString();Object.assign(period(),{closed_at:stamp,closed_by_name:profile.display_name});periods.push({id:crypto.randomUUID(),site_id:site().id,opened_at:stamp,closed_at:null});}else await result(db.rpc('close_period',{p_site:site().id,p_period:period().id}));clearEdit();await refresh();notice('Caisse clôturée. Une nouvelle période est ouverte.');});};
