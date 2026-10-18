@@ -13,3 +13,8 @@ export function periodFloor(period,periods){
  const hasPrevious=periods.some(p=>p.site_id===period.site_id&&p.id!==period.id&&p.closed_at&&new Date(p.closed_at)<=new Date(period.opened_at));
  return hasPrevious?new Date(period.opened_at).toLocaleDateString('en-CA',{timeZone:'Africa/Kinshasa'}):'';
 }
+
+export function openPeriodReports(reports,periods,siteId=null){
+ const openPeriods=new Map(periods.filter(p=>!p.closed_at&&(siteId===null||p.site_id===siteId)).map(p=>[p.id,p.site_id]));
+ return reports.filter(r=>openPeriods.has(r.period_id)&&openPeriods.get(r.period_id)===r.site_id);
+}
