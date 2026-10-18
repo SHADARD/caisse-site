@@ -1,6 +1,6 @@
 # Flamingo Network — Flamingo SARL · Gestion des sites
 
-Application en français, statique, sans compilation, prévue pour GitHub + Netlify et Supabase (authentification et PostgreSQL). Sans configuration, elle propose un aperçu à données fictives, modifiables uniquement en mémoire. Recharger la page efface tous les essais. Aucun compte réel n’est utilisable dans cet aperçu.
+Application en français, statique, sans compilation, prévue pour GitHub + Netlify et Supabase (authentification et PostgreSQL). Sans configuration, la version publiée affiche uniquement l’accueil et l’écran de connexion, avec une indication d’activation nécessaire lors de la tentative de connexion. Aucun rapport fictif ni bouton de démonstration n’est affiché. Le fichier autonome apercu.html reste un ancien outil de test local, exclu du build Cloudflare.
 
 ## Fonctionnalités
 
@@ -83,7 +83,7 @@ Le même dépôt reste compatible avec les deux hébergeurs. La création des co
 1. Créer un compte Cloudflare gratuit, puis ouvrir **Workers & Pages** et choisir la création d’un projet **Pages** avec import Git (ne pas choisir un projet Workers).
 2. Autoriser le dépôt GitHub **SHADARD/caisse-site** et sélectionner la branche **main**.
 3. Framework preset : **None**. Build command : **node build-cloudflare.mjs**. Build output directory : **dist**. Root directory : laisser vide.
-4. Déployer. Une adresse `*.pages.dev` sera attribuée. Sans configuration Supabase, ce sera la démonstration, pas une application de production avec comptes réels.
+4. Déployer. Une adresse `*.pages.dev` sera attribuée. Sans configuration Supabase, seuls l’accueil et l’écran de connexion seront disponibles ; aucun compte réel ne fonctionnera encore.
 5. Pour activer les comptes, préparer Supabase selon les instructions ci-dessus, renseigner les clés publiques dans `config.js`, puis définir **SUPABASE_URL** et le secret **SUPABASE_SERVICE_ROLE_KEY** dans les variables/secrets de production du projet Cloudflare Pages, jamais dans GitHub. Redéployer après configuration.
 6. Vérifier les permissions et les opérations réelles avec les scénarios d’intégration, puis transmettre les identifiants aux utilisateurs séparément.
 

@@ -5,3 +5,5 @@
 .public-page footer .private-details,.public-page #identity{display:none}
 
 .welcome-visual{position:relative;overflow:hidden}.welcome-visual #welcome-picture{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.welcome-visual.has-image #welcome-picture{display:block}.welcome-visual.has-image:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,34,24,.82),rgba(5,34,24,.08))}.welcome-visual>span,.welcome-visual>h2,.welcome-visual>p{position:relative;z-index:1}.welcome-visual.has-image>span{opacity:0}
+
+.public-page header>span{display:none}
