@@ -15,7 +15,7 @@ create or replace function public.validate_report_dates()
 returns trigger
 language plpgsql
 set search_path=public
-as $
+as $$
 declare
   p public.periods;
   has_previous boolean;
@@ -47,7 +47,7 @@ begin
   end if;
   return new;
 end
-$;
+$$;
 create trigger validate_report_dates before insert or update on public.reports for each row execute function public.validate_report_dates();
 create function public.add_report(p_site uuid,p_date date,p_connection numeric,p_mpesa numeric,p_commission numeric,p_gold_cost numeric,p_gold_weight numeric) returns uuid language plpgsql security definer set search_path=public as $$declare pid uuid;rid uuid;begin
  if not exists(select 1 from public.profiles where id=auth.uid() and (role='super' or (role='site' and site_id=p_site))) then raise exception 'Action non autorisée.' using errcode='42501';end if;

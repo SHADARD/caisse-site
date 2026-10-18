@@ -1,0 +1,8 @@
+name = "flamingo-monthly-backup"
+main = "monthly-backup.mjs"
+compatibility_date = "2026-10-18"
+[triggers]
+crons = ["5 23 9 * *"]
+[vars]
+ARCHIVE_ENDPOINT = "https://caisse-site.pages.dev/api/archive-monthly"
+# ARCHIVE_CRON_SECRET : secret à définir sur ce Worker ET dans le projet Pages.
