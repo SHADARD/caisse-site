@@ -112,3 +112,9 @@ Pour installer depuis le site : télécharger l’APK sur Android, l’ouvrir, p
 L’impression utilise le service d’impression Android ; selon l’appareil, le menu permet l’export PDF ou le choix d’une imprimante configurée. Les liens externes s’ouvrent dans le navigateur ; les pages de la plateforme restent dans l’application. La connexion et la session sont propres à l’application, distinctes de celles du navigateur.
 
 Sources et procédure de compilation : `android/README.md`. Les signatures v2 et v3 et le manifeste de l’APK ont été vérifiés. L’installation, le clavier, les dates, l’impression et la persistance de session doivent encore être validés sur un téléphone réel avant diffusion à tous les utilisateurs.
+
+## Logo Flamingo SARL et Android 1.0.1
+
+L’image fournie `image1.png` sert de logo dans l’accueil et le menu, de visuel principal et de favicon. Son contenu est en fait JPEG ; le fichier original est conservé et les en-têtes déclarent le type réel. L’image est affichée entièrement, sans recadrage. Le build copie `image1.png` dans le site public.
+
+L’APK 1.0.1 (versionCode 2) reprend le logo officiel dans son icône adaptative. Le fichier source est également conservé dans `android/res/drawable-nodpi/flamingo_logo.jpg`, avec ses octets d’origine. Il est signé avec le même certificat que la version 1.0.0 pour permettre une mise à jour sans désinstaller. Le bouton du site télécharge désormais la version 1.0.1 ; le fichier 1.0.0 reste disponible pour les anciens liens. La source fournie est de petite taille : prévoir une image plus définie pour améliorer la netteté en grand.
