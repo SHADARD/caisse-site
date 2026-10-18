@@ -1,0 +1,10 @@
+import {test,afterEach} from 'node:test';import assert from 'node:assert/strict';
+import handler from '../netlify/functions/delete-managed.mjs';
+const original=globalThis.fetch;afterEach(()=>globalThis.fetch=original);
+const env={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test-key'};
+const id='00000000-0000-4000-8000-000000000003';
+const req=()=>new Request('https://example.test/api/delete-managed',{method:'POST',headers:{Authorization:'Bearer test'},body:JSON.stringify({kind:'user',id})});
+const json=x=>new Response(JSON.stringify(x));
+test('un administrateur ne peut pas supprimer',async()=>{let n=0;globalThis.fetch=async()=>json(++n===1?{id:'admin'}:[{role:'admin'}]);assert.equal((await handler(req(),env)).status,403);assert.equal(n,2);});
+test('le super retire les droits avant de bloquer la connexion Auth',async()=>{const calls=[];globalThis.fetch=async(url,options)=>{calls.push(url);if(calls.length===1)return json({id:'super'});if(calls.length===2)return json([{role:'super'}]);if(calls.length===3){assert.match(url,/remove_managed_entity$/);return json({disabled_users:[id]});}assert.equal(options.method,'PUT');assert.equal(JSON.parse(options.body).ban_duration,'876000h');return json({});};assert.equal((await handler(req(),env)).status,200);assert.equal(calls.length,4);});
+test('une suppression refusée par la base ne modifie pas Auth',async()=>{let n=0;globalThis.fetch=async()=>++n===1?json({id:'super'}):n===2?json([{role:'super'}]):new Response(JSON.stringify({message:'Compte protégé.'}),{status:403});assert.equal((await handler(req(),env)).status,403);assert.equal(n,3);});

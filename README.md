@@ -126,3 +126,11 @@ Nouveau : « Tout réinitialiser » réservé au super utilisateur, avec phrase 
 La sauvegarde mensuelle est prévue le 10 à 00 h 05 à Kinshasa, pour la période du 10 au 9 terminée. Elle ne déclenche aucun reset automatique. Le PDF de synthèse de tous les sites est conservé dans le stockage Supabase privé et apparaît dans « Historique et PDF ».
 
 **Activé le 18 octobre 2026 :** migrations 002/003 installées, stockage privé vérifié et sauvegarde mensuelle programmée dans Supabase Cron au 10 à 00 h 05 (Kinshasa). Test réel PDF/JSON réussi sans réinitialiser les données. La fonction Supabase remplace le Worker Cloudflare alternatif. Voir `docs/archives-et-reset.md` pour le déploiement et les contrôles.
+
+## Identifiants libres et suppression des comptes/sites
+
+La migration `supabase/migrations/20261018171038_flexible_accounts_and_removal.sql` est appliquée après les migrations 002/003. Elle retire le format imposé aux identifiants : majuscules, minuscules, espaces, accents et noms courts sont acceptés. L’identifiant reste obligatoire et unique, sans distinction de casse. Les nouveaux comptes utilisent une adresse technique dérivée par SHA-256 ; la connexion reste compatible avec les anciens comptes et les e-mails existants. La limite applicative de 12 caractères est retirée des mots de passe ; le minimum technique Supabase reste de 6 caractères.
+
+Le super utilisateur dispose de « Supprimer » dans les listes des comptes et des sites. Une confirmation précède l’action. La suppression est logique : elle masque l’entité, retire immédiatement les droits via les politiques de base et bloque Auth côté serveur. Un site supprimé ferme sa caisse et désactive ses utilisateurs. Les rapports, noms des auteurs et archives sont conservés pour les états mensuels. Les identifiants supprimés restent réservés. Le compte super utilisateur est protégé contre la suppression. Un compte supprimé ne compte plus dans la limite des deux administrateurs actifs.
+
+Vérifications : `node --test tests/account-identity.test.mjs tests/create-user.test.mjs tests/delete-managed.test.mjs`, puis `tests/managed-accounts-database-check.mjs` avec PGlite (dépendance de test uniquement).

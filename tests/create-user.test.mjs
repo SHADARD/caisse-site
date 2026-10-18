@@ -13,3 +13,11 @@ test('un compte de site ne peut pas créer un utilisateur',async()=>{config();le
 test('un administrateur ne peut pas créer un utilisateur',async()=>{config();let calls=0;globalThis.fetch=async()=>json(++calls===1?{id:'admin-user'}:[{role:'admin'}]);assert.equal((await handler(req())).status,403);});
 test('le super utilisateur ne peut pas créer un autre super via cet endpoint',async()=>{config();let calls=0;globalThis.fetch=async()=>json(++calls===1?{id:'super-user'}:[{role:'super'}]);assert.equal((await handler(req({username:'nouveau',display_name:'Nom',password:'long-password-test',role:'super'}))).status,400);assert.equal(calls,2);});
 test('si la création du profil échoue, supprime le compte auth partiel',async()=>{config();const calls=[];globalThis.fetch=async(url,opts)=>{calls.push({url,opts});if(calls.length===1)return json({id:'super-user'});if(calls.length===2)return json([{role:'super'}]);if(calls.length===3)return json({id:'new-user'});if(calls.length===4)return new Response(JSON.stringify({message:'Deux comptes administrateurs maximum.'}),{status:400});return json({});};const r=await handler(req({username:'admin3',display_name:'Admin 3',password:'long-password-test',role:'admin'}));assert.equal(r.status,400);assert.equal(calls[4].opts.method,'DELETE');assert.match(calls[4].url,/new-user$/);});
+test('accepte un identifiant court en majuscule et un mot de passe de six caractères',async()=>{
+ config();const calls=[];globalThis.fetch=async(url,opts)=>{calls.push({url,opts});if(calls.length===1)return json({id:'super-user'});if(calls.length===2)return json([{role:'super'}]);if(calls.length===3){const body=JSON.parse(opts.body);assert.match(body.email,/^[a-f0-9]{64}@users\.caisse\.invalid$/);assert.equal(body.password,'abcdef');return json({id:'new-user'});}assert.equal(JSON.parse(opts.body).username,'X');return json({});};
+ assert.equal((await handler(req({username:'X',display_name:'X',password:'abcdef',role:'admin'}))).status,201);
+});
+test('accepte un identifiant avec espaces et caractères accentués',async()=>{
+ config();let n=0;globalThis.fetch=async()=>json(++n===1?{id:'super-user'}:n===2?[{role:'super'}]:n===3?{id:'new-user'}:{});
+ assert.equal((await handler(req({username:'Équipe Kinshasa',display_name:'Équipe',password:'abcdef',role:'admin'}))).status,201);
+});

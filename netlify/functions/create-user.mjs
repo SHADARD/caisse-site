@@ -1,3 +1,4 @@
+import {accountEmail} from '../../account-identity.mjs';
 const response=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 export default async function(request,env=globalThis.process?.env||{}){
  if(request.method!=='POST')return response(405,{error:'Méthode non autorisée.'});
@@ -14,10 +15,11 @@ export default async function(request,env=globalThis.process?.env||{}){
   if(!who.ok)return response(403,{error:'Accès refusé.'});
   const own=await who.json();if(own[0]?.role!=='super')return response(403,{error:'Seul le super utilisateur peut créer des comptes.'});
   const body=await request.json();
-  const {username,display_name,password,role,site_id}=body;
-  if(typeof username!=='string'||!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)||typeof display_name!=='string'||!display_name.trim()||display_name.length>100||typeof password!=='string'||password.length<12||password.length>128||!['site','admin'].includes(role)||(role==='site'&& !/^[a-f0-9-]{36}$/.test(site_id||'')))return response(400,{error:'Vérifiez les champs : identifiant de 3 à 40 caractères, nom et mot de passe de 12 caractères minimum.'});
+  const {display_name,password,role,site_id}=body;
+  const username=typeof body.username==='string'?body.username.trim():'';
+  if(typeof username!=='string'||!username||typeof display_name!=='string'||!display_name.trim()||typeof password!=='string'||password.length<6||!['site','admin'].includes(role)||(role==='site'&& !/^[a-f0-9-]{36}$/.test(site_id||'')))return response(400,{error:'Renseignez un identifiant, un nom et un mot de passe d’au moins 6 caractères.'});
   const serviceHeaders={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};
-  const created=await fetch(url+'/auth/v1/admin/users',{method:'POST',headers:serviceHeaders,body:JSON.stringify({email:username+'@users.caisse.invalid',password,email_confirm:true})});
+  const created=await fetch(url+'/auth/v1/admin/users',{method:'POST',headers:serviceHeaders,body:JSON.stringify({email:await accountEmail(username),password,email_confirm:true})});
   if(!created.ok){return response(400,{error:created.status===422?'Cet identifiant est déjà utilisé ou les informations sont invalides.':'Impossible de créer le compte.'});}
   const account=await created.json();
   let saved=false;
