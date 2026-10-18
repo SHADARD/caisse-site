@@ -1,1 +1,77 @@
-# caisse-site
+# Flamingo Network — Flamingo SARL · Gestion des sites
+
+Application en français, statique, sans compilation, prévue pour GitHub + Netlify et Supabase (authentification et PostgreSQL). Sans configuration, elle propose un aperçu à données fictives, modifiables uniquement en mémoire. Recharger la page efface tous les essais. Aucun compte réel n’est utilisable dans cet aperçu.
+
+## Fonctionnalités
+
+- Un rapport par date et site : recettes internet, transferts M-pesa, commissions M-pesa en FC, achat d’or en FC, poids en grammes.
+- Cinq cumuls par période, dont achat d’or, ajoutée pour suivre tous les champs saisis.
+- Site : consultation de ses données et ajout de rapports. Administrateurs (deux maximum) : consultation de tous les sites, impression et clôture. Super utilisateur : mêmes droits, ajout, modification et suppression des rapports.
+- Clôture atomique : une période historique conservée et une nouvelle période ouverte. Deux clôtures simultanées de la même période ne créent pas deux périodes.
+- Les modifications/suppressions du super utilisateur recalculent les cumuls historiques également. Pas de journal des anciennes versions des rapports dans cette première version.
+- Dates métier en fuseau Africa/Kinshasa. Un rapport maximum par jour et site, même après une clôture : confirmer si plusieurs rapports par jour sont nécessaires.
+
+## Installation Supabase
+
+1. Créer un projet Supabase. Dans SQL Editor, exécuter `schema.sql` une seule fois dans un projet vierge.
+2. Dans Authentication → Providers, désactiver les nouvelles inscriptions publiques. Créer le premier super utilisateur depuis le tableau de bord Authentication → Add user → Create new user avec l’adresse technique `responsable@users.caisse.invalid`, confirmer son adresse et choisir un mot de passe fort. Son nom d’utilisateur sera `responsable`. Cette adresse technique sert uniquement à l’authentification, elle ne reçoit pas de courrier. Les flux de récupération/changement du mot de passe ne sont pas encore inclus ; un opérateur autorisé les gère depuis Supabase.
+3. Créer le profil du premier super utilisateur via SQL Editor, avec l’UUID retourné par Authentication :
+
+```sql
+insert into public.profiles(id,username,display_name,role,site_id)
+values ('UUID-AUTH-SUPER','responsable','Responsable','super',null);
+```
+
+Après connexion, ce super utilisateur peut créer les sites et les comptes `site` et `admin` depuis l’écran « Sites et utilisateurs ». La fonction serveur crée une adresse technique de la forme `identifiant@users.caisse.invalid`. Le mot de passe n’est jamais enregistré dans les tables applicatives. Les rôles ne viennent pas des métadonnées modifiables par les utilisateurs. Créer les deux administrateurs depuis cet écran.
+
+4. Renseigner `config.js` avec l’URL du projet et sa clé **publishable / anon publique** depuis les paramètres Supabase. Ces deux valeurs sont publiques. **Ne jamais utiliser de clé service_role ou secrète.** La sécurité repose sur les politiques RLS et les fonctions SQL.
+5. Dans Netlify → Environment variables, renseigner **SUPABASE_URL** et **SUPABASE_SERVICE_ROLE_KEY**, uniquement pour les fonctions serveur. Cette clé secrète ne doit jamais figurer dans `config.js`, le dépôt, un aperçu ou un message de chat. Elle est nécessaire à la création des comptes ; le serveur vérifie d’abord la session et le rôle super utilisateur.
+6. Configurer les paramètres d’authentification Supabase avec l’URL Netlify finale. Vérifier les comptes et droits avec les scénarios ci-dessous avant usage réel.
+
+## GitHub et Netlify
+
+Créer un dépôt GitHub privé, puis exécuter dans ce dossier (remplacer l’URL) :
+
+```sh
+git init -b main
+git add .
+git commit -m "Créer l’application de rapports des sites"
+git remote add origin https://github.com/SHADARD/caisse-site.git
+git push -u origin main
+```
+
+Dans Netlify : Add new project → Import an existing project → GitHub → choisir ce dépôt. Aucun build command ; Publish directory = `.`. `netlify.toml` fournit déjà cette configuration. Chaque push sur main redéploiera le site. Le dépôt est privé mais la page de connexion Netlify est publique ; les données restent protégées par Supabase.
+
+Si ce dossier est ajouté dans un dépôt parent, choisir `caisse-sites` comme Base directory sur Netlify.
+
+## Vérifications
+
+`node --test domain.test.mjs` vérifie les cumuls et les validations métier du navigateur. Les mêmes contraintes doivent être imposées dans PostgreSQL par `schema.sql`.
+
+Scénarios d’intégration à exécuter dans le projet Supabase configuré :
+
+1. Se connecter comme site A : créer un rapport, vérifier les cinq cumuls ; essayer un doublon et une date future (refus).
+2. Se connecter comme site B : vérifier que les données du site A sont invisibles, y compris via l’API avec le jeton du site B.
+3. Comme administrateur : consulter tous les sites, imprimer, tenter une modification/suppression par API (refus), clôturer une caisse (succès), consulter l’historique.
+4. Comme site : appeler `close_period` (refus), tenter de changer son profil ou d’écrire directement une période (refus).
+5. Comme super utilisateur : modifier/supprimer un rapport, vérifier le recalcul. Une modification n’autorise pas à changer son site, sa période ou son auteur.
+6. Clôturer la même période depuis deux sessions : une seule clôture doit réussir. Ajouter un rapport pendant une clôture : les deux opérations sont sérialisées par verrou de site.
+7. Tenter de créer un troisième administrateur depuis SQL : refus.
+
+Aucune dépendance de compilation. Le client Supabase est chargé depuis esm.sh, version fixée. Le navigateur nécessite Internet pour se connecter. Les rapports imprimés respectent le site, la vue et le filtre de date sélectionnés. Désactiver les en-têtes/pieds de page du navigateur si souhaité.
+
+## État de livraison
+
+Sources prêtes pour GitHub/Netlify. Déploiement et base distante non configurés. Les tests d’intégration des permissions doivent être effectués sur Supabase avant la mise en service. La création des sites et des comptes est disponible au super utilisateur dans l’application, après configuration de la fonction serveur. Le premier super utilisateur et la récupération des mots de passe passent par Supabase. La gestion de suppression/modification des comptes existants n’est pas encore incluse ; les rapports, eux, sont modifiables et supprimables par le super utilisateur.
+
+## Tester avant toute publication
+
+Ouvrir **apercu.html** par double-clic. Il est autonome et ne nécessite ni installation, ni GitHub, ni Netlify. Cliquer sur « Essayer la démonstration » pour tester les rapports, les cumuls, les modifications/suppressions, les clôtures et l’impression avec des données fictives. Les actions de création de comptes/sites réels restent désactivées. La page d’accueil comprend pour l’instant un visuel graphique provisoire ; la photo définitive reste à choisir.
+
+Cet aperçu ne valide pas les permissions réelles de la base. Aucun compte réel ne peut y être testé. Pour tester les comptes avant publication Netlify, configurer Supabase puis utiliser Netlify CLI localement (`netlify dev`) avec les variables serveur locales. Ne jamais committer les fichiers .env.
+
+Le fichier aperçu est généré depuis les sources et ne doit pas être utilisé pour la production : il intègre volontairement une configuration vide. Sur Netlify, l’application utilise `index.html` et `config.js`.
+
+## Photo d’accueil
+
+Ajouter le fichier **image1.jpg** (tout en minuscules, extension .jpg) à la racine du dépôt, à côté de `index.html`. L’application l’affichera automatiquement au prochain déploiement. En son absence, un visuel graphique reste affiché. Choisir une photo sans informations confidentielles, puisque le dépôt est public. L’aperçu autonome conserve le visuel graphique si la photo n’est pas placée dans le même dossier.
