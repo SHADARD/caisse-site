@@ -1,4 +1,4 @@
-# Flamingo Network — Android 1.0.1
+# Flamingo Network — Android 1.0.3
 
 Application Android native Java avec Android WebView. Identifiant : `com.flamingo.network`. URL fixe : `https://caisse-site.pages.dev/`. API minimale 26 (Android 8), cible 35. Permission demandée : Internet uniquement. Aucune autorisation de caméra, contacts ou stockage global. L’application charge les mêmes interfaces et conserve les sessions dans le stockage privé WebView. Le bouton de téléchargement n’est pas affiché à l’intérieur de l’application.
 
@@ -37,3 +37,7 @@ Incrémenter `versionCode` et `versionName` dans le manifeste ; utiliser un nouv
 ### Version 1.0.1
 
 VersionCode 2. Icône adaptative contenant l’image Flamingo SARL fournie, sans modifier le dessin. Même certificat de signature que 1.0.0. Le changement d’icône nécessite l’installation de cette nouvelle version ; les écrans web se mettent à jour sans réinstallation.
+
+### Version 1.0.3
+
+VersionCode 4. L’icône dispose désormais de dimensions intrinsèques carrées (108 × 108 dp), avec un fond rouge plein et le logo original centré. Une ressource de repli carrée complète l’icône adaptative. Cela corrige les lanceurs OEM qui affichaient la bannière comme une petite icône rectangulaire. Installation en mise à jour avec la même signature ; aucune désinstallation nécessaire.
