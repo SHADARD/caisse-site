@@ -142,3 +142,11 @@ Le bouton sous le téléchargement Android ouvre les instructions Safari → Par
 ## Connexion : navigation indépendante du réseau
 
 `public-shell.js` ouvre les écrans publics et l’aide iOS sans attendre Supabase. L’initialisation ne désactive plus tous les boutons. La configuration, le module de connexion et la session ont des délais limites ; une tentative de connexion affiche une erreur au lieu de rester bloquée. Les fichiers `.mjs` sont explicitement servis en JavaScript. Vérification navigateur locale : `node tests/login-ui-check.cjs` avec Playwright et Chromium disponibles (variables `PLAYWRIGHT_MODULE` et `CHROMIUM_PATH` facultatives). Le test utilise uniquement des données et des services simulés.
+
+### Sessions bloquées : correction du 18 octobre 2026
+
+Le SDK Supabase 2.49.1 est désormais livré sous `vendor/`, avec sa licence MIT, depuis l’archive npm dont l’intégrité SHA-512 a été vérifiée. Aucun chargement de SDK depuis un CDN n’est nécessaire. La clé locale de session Flamingo v2 évite les anciens verrous de session ; une reconnexion est nécessaire après mise à jour. Les verrous inter-onglets ont un délai d’acquisition de 6 secondes et les requêtes réseau un délai de 15 secondes.
+
+« Déconnexion » reste accessible pendant le chargement des données. L’action efface uniquement les clés de session de ce projet sur cet appareil et tente la révocation serveur de cette session pendant 3 secondes maximum. Si l’appareil est hors ligne, la session locale est effacée mais la révocation distante ne peut pas être garantie ; les autres appareils ne sont pas déconnectés. Aucun compte ni rapport n’est supprimé.
+
+Test navigateur `tests/auth-session-browser-check.cjs` : véritable SDK livré, serveur Auth simulé, ancien verrou retenu indéfiniment, connexion réussie, déconnexion sans réseau, anciennes clés supprimées et stockage d’une autre application conservé.

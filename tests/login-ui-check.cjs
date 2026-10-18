@@ -30,7 +30,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
   // Connexion de test, erreur visible puis accès au tableau de bord.
   const login=await browser.newPage();login.on('pageerror',e=>errors.push(e.message));
   await login.route('**/api/config',r=>r.fulfill({json:{supabaseUrl:'https://example.supabase.co',supabaseKey:'public-test'}}));
-  await login.route('https://esm.sh/**',r=>r.fulfill({contentType:'text/javascript',body:'export function createClient(){return window.__fakeDb;}'}));
+  await login.route('**/vendor/supabase-2.49.1.js',r=>r.fulfill({contentType:'text/javascript',body:'window.supabase={createClient:()=>window.__fakeDb};'}));
   await login.addInitScript(()=>{
    const profile={id:'00000000-0000-4000-8000-000000000001',username:'Test',display_name:'Test',role:'super',site_id:null};
    window.__attempts=[];
