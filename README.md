@@ -134,3 +134,7 @@ La migration `supabase/migrations/20261018171038_flexible_accounts_and_removal.s
 Le super utilisateur dispose de « Supprimer » dans les listes des comptes et des sites. Une confirmation précède l’action. La suppression est logique : elle masque l’entité, retire immédiatement les droits via les politiques de base et bloque Auth côté serveur. Un site supprimé ferme sa caisse et désactive ses utilisateurs. Les rapports, noms des auteurs et archives sont conservés pour les états mensuels. Les identifiants supprimés restent réservés. Le compte super utilisateur est protégé contre la suppression. Un compte supprimé ne compte plus dans la limite des deux administrateurs actifs.
 
 Vérifications : `node --test tests/account-identity.test.mjs tests/create-user.test.mjs tests/delete-managed.test.mjs`, puis `tests/managed-accounts-database-check.mjs` avec PGlite (dépendance de test uniquement).
+
+## Installation iPhone / iPad
+
+Le bouton sous le téléchargement Android ouvre les instructions Safari → Partager → Sur l’écran d’accueil → Ajouter. Il s’agit de la version web iOS, utilisant les mêmes interfaces et comptes, avec Internet requis. Les métadonnées Apple activent le mode application lorsque le site est ajouté à l’accueil. Aucun fichier APK iOS ni publication App Store n’est proposé.

@@ -132,3 +132,6 @@ async function removeManaged(kind,id){
 }
 $('#account-list').addEventListener('click',e=>{const b=e.target.closest('[data-remove-user]');if(b)removeManaged('user',b.dataset.removeUser);});
 $('#site-list').addEventListener('click',e=>{const b=e.target.closest('[data-remove-site]');if(b)removeManaged('site',b.dataset.removeSite);});
+
+$('#ios-install').onclick=()=>$('#ios-install-dialog').showModal();
+if(navigator.standalone||window.matchMedia('(display-mode: standalone)').matches)$('#android-download-card').hidden=true;
