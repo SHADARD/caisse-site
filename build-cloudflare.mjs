@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 const directory=new URL('./dist/',import.meta.url);
 await rm(directory,{recursive:true,force:true});
 await mkdir(directory,{recursive:true});
-for(const name of ['index.html','style.css','app.js','account-identity.mjs','domain.mjs','config.js','_headers','_routes.json']) {
+for(const name of ['index.html','style.css','app.js','public-shell.js','account-identity.mjs','domain.mjs','config.js','_headers','_routes.json']) {
  await copyFile(new URL(name,import.meta.url),new URL(name,directory));
 }
 await copyFile(new URL('image1.png',import.meta.url),new URL('image1.png',directory));

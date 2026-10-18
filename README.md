@@ -138,3 +138,7 @@ Vérifications : `node --test tests/account-identity.test.mjs tests/create-user.
 ## Installation iPhone / iPad
 
 Le bouton sous le téléchargement Android ouvre les instructions Safari → Partager → Sur l’écran d’accueil → Ajouter. Il s’agit de la version web iOS, utilisant les mêmes interfaces et comptes, avec Internet requis. Les métadonnées Apple activent le mode application lorsque le site est ajouté à l’accueil. Aucun fichier APK iOS ni publication App Store n’est proposé.
+
+## Connexion : navigation indépendante du réseau
+
+`public-shell.js` ouvre les écrans publics et l’aide iOS sans attendre Supabase. L’initialisation ne désactive plus tous les boutons. La configuration, le module de connexion et la session ont des délais limites ; une tentative de connexion affiche une erreur au lieu de rester bloquée. Les fichiers `.mjs` sont explicitement servis en JavaScript. Vérification navigateur locale : `node tests/login-ui-check.cjs` avec Playwright et Chromium disponibles (variables `PLAYWRIGHT_MODULE` et `CHROMIUM_PATH` facultatives). Le test utilise uniquement des données et des services simulés.

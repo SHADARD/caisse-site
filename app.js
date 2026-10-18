@@ -62,8 +62,8 @@ $('#report-form').onsubmit=e=>{e.preventDefault();busy(async()=>{const r=Object.
 $('#reports').onclick=e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit){const r=reports.find(r=>r.id===edit.dataset.edit);$('#site').value=r.site_id;editing=r.id;render();for(const k of ['report_date',...fields])$('#report-form').elements[k].value=r[k];$('#save').textContent='Enregistrer les modifications';$('#form-title').textContent='Modifier le rapport';$('#cancel-edit').hidden=false;$('#entry-panel').scrollIntoView({behavior:'smooth'});}if(del){if(confirm('Supprimer définitivement ce rapport ? Les cumuls seront recalculés.'))busy(async()=>{if(demo)reports=reports.filter(r=>r.id!==del.dataset.delete);else await result(db.from('reports').delete().eq('id',del.dataset.delete));clearEdit();await refresh();notice('Rapport supprimé.');});}};
 $('#reset').onclick=()=>{if(!period())return notice('Aucune période ouverte.');if(confirm(`Confirmer la collecte de toute la caisse de ${site().name} ? La période sera clôturée et les cumuls repartiront à zéro. Les rapports resteront dans l’historique.`))busy(async()=>{if(demo){const stamp=new Date().toISOString();Object.assign(period(),{closed_at:stamp,closed_by_name:profile.display_name});periods.push({id:crypto.randomUUID(),site_id:site().id,opened_at:stamp,closed_at:null});}else await result(db.rpc('close_period',{p_site:site().id,p_period:period().id}));clearEdit();await refresh();notice('Caisse clôturée. Une nouvelle période est ouverte.');});};
 async function openWorkspace(){profile=await result(db.from('profiles').select('*').eq('id',(await db.auth.getUser()).data.user.id).single());sites=await allRows('sites','name');$('#site').innerHTML=siteOptions();$('#identity').textContent='Bienvenue, '+profile.display_name;document.body.classList.remove('public-page');$('#welcome').hidden=true;$('#accounts-nav').hidden=profile.role!=='super';$('#login').hidden=true;$('#workspace').hidden=false;$('#logout').hidden=false;clearEdit();await refresh();await loadAccounts();}
-$('#login-form').onsubmit=e=>{e.preventDefault();busy(async()=>{notice('');if(!configured||!db)throw Error(configurationError);const f=new FormData(e.target);let loginError;for(const email of await loginEmails(f.get('username'))){const attempt=await db.auth.signInWithPassword({email,password:f.get('password')});loginError=attempt.error;if(!loginError)break;if(!['invalid_credentials','invalid_grant'].includes(loginError.code))break;}if(loginError)throw loginError;await openWorkspace();e.target.reset();});};$('#logout').onclick=()=>busy(async()=>{const {error}=await db.auth.signOut();if(error)throw error;location.reload();});
-$('#connect').onclick=()=>{$('#welcome').hidden=true;$('#login').hidden=false;$('#login-form').elements.username.focus();if(!configured||!db)notice(configurationError);};$('#back-welcome').onclick=()=>{$('#login').hidden=true;$('#welcome').hidden=false;};
+$('#login-form').onsubmit=e=>{e.preventDefault();busy(async()=>{notice('Chargement de la connexion…');if(!db)await ensureConnection();if(!configured||!db)throw Error(configurationError);const f=new FormData(e.target);let loginError;for(const email of await loginEmails(f.get('username'))){const attempt=await withTimeout(db.auth.signInWithPassword({email,password:f.get('password')}),15000,'La connexion prend trop de temps. Vérifiez votre connexion Internet et réessayez.');loginError=attempt.error;if(!loginError)break;if(!['invalid_credentials','invalid_grant'].includes(loginError.code))break;}if(loginError)throw loginError;await openWorkspace();notice('');e.target.reset();});};$('#login-form').dataset.handlerReady='true';$('#logout').onclick=()=>busy(async()=>{const {error}=await db.auth.signOut();if(error)throw error;location.reload();});
+
 
 
 async function loadAccounts(){if(profile.role!=='super')return;$('#account-site').innerHTML=sites.filter(s=>!s.deleted_at).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');const accounts=demo?[]:await allRows('profiles','display_name');$('#site-list').innerHTML=sites.filter(s=>!s.deleted_at).map(s=>`<tr><td>${esc(s.name)}</td><td><button class="danger" data-remove-site="${esc(s.id)}">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="2">Aucun site.</td></tr>';$('#account-list').innerHTML=accounts.map(a=>`<tr><td>${esc(a.username)}</td><td>${esc(a.display_name)}</td><td>${esc({site:'Site',admin:'Administrateur',super:'Super utilisateur'}[a.role])}</td><td>${esc(sites.find(s=>s.id===a.site_id)?.name||'Tous les sites')}</td><td>${a.id===profile.id?'Compte connecté':a.role==='super'?'Super utilisateur':`<button class="danger" data-remove-user="${esc(a.id)}">Supprimer</button>`}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Aucun compte réel dans cet aperçu.</td></tr>';}
@@ -73,11 +73,13 @@ $('#site-form').onsubmit=e=>{e.preventDefault();busy(async()=>{if(demo)throw Err
 
 const welcomePicture=document.querySelector('#welcome-picture');function showWelcomePicture(){if(welcomePicture.naturalWidth>0)welcomePicture.parentElement.classList.add('has-image');}welcomePicture.addEventListener('load',showWelcomePicture);showWelcomePicture();
 
+function withTimeout(promise,ms,message){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]).finally(()=>clearTimeout(timer));}
+let connectionTask=null;
+function ensureConnection(){if(!connectionTask)connectionTask=initializeConnection().finally(()=>{connectionTask=null;});return connectionTask;}
 async function initializeConnection(){
- await busy(async()=>{
   if(!configured){
    try{
-    const response=await fetch('/api/config',{cache:'no-store'});
+    const response=await withTimeout(fetch('/api/config',{cache:'no-store'}),12000,'Le service de connexion ne répond pas.');
     const data=await response.json();
     if(!response.ok){configurationError=data.error||'La configuration de connexion doit être complétée.';return;}
     cfg=data;configured=Boolean(cfg.supabaseUrl&&cfg.supabaseKey);
@@ -85,16 +87,15 @@ async function initializeConnection(){
   }
   if(!configured)return;
   try{
-   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.49.1');
+   const {createClient}=await withTimeout(import('https://esm.sh/@supabase/supabase-js@2.49.1'),12000,'Le module de connexion ne répond pas. Vérifiez votre connexion Internet.');
    db=createClient(cfg.supabaseUrl,cfg.supabaseKey);
-   const {data,error}=await db.auth.getSession();if(error)throw error;
+   const {data,error}=await withTimeout(db.auth.getSession(),12000,'La session n’a pas pu être vérifiée.');if(error)throw error;
    if(data.session)await openWorkspace();
   }catch(error){configurationError='Impossible de charger la connexion : '+explain(error);notice(configurationError);}
- });
 }
-initializeConnection();
+void ensureConnection();
 
-if(/FlamingoAndroid\//.test(navigator.userAgent)){const card=document.querySelector('#android-download-card');if(card)card.hidden=true;}
+
 
 async function loadArchiveData(){
  if(!canReset()){archives=[];archiveAvailable=false;return;}
@@ -133,5 +134,4 @@ async function removeManaged(kind,id){
 $('#account-list').addEventListener('click',e=>{const b=e.target.closest('[data-remove-user]');if(b)removeManaged('user',b.dataset.removeUser);});
 $('#site-list').addEventListener('click',e=>{const b=e.target.closest('[data-remove-site]');if(b)removeManaged('site',b.dataset.removeSite);});
 
-$('#ios-install').onclick=()=>$('#ios-install-dialog').showModal();
-if(navigator.standalone||window.matchMedia('(display-mode: standalone)').matches)$('#android-download-card').hidden=true;
+
