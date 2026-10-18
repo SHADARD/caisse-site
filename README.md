@@ -90,3 +90,7 @@ Le même dépôt reste compatible avec les deux hébergeurs. La création des co
 `node build-cloudflare.mjs` prépare uniquement les fichiers publics dans `dist/`. Les fonctions sont dans `functions/` à la racine et le code serveur partagé reste hors de `dist/`. Les tests, SQL et documentation ne sont pas servis par la version Cloudflare. La photo `image1.jpg`, si présente à la racine, est copiée pendant le build.
 
 L’offre gratuite comporte des quotas. Ne pas activer d’offre payante sans décision explicite. Si Netlify est encore relié au dépôt, suspendre ses déploiements automatiques pendant cette phase pour éviter un déploiement supplémentaire lors de la reprise du cycle.
+
+## Configuration publique chargée depuis l’hébergeur
+
+L’application peut désormais charger `/api/config` : définir `SUPABASE_URL` et `SUPABASE_ANON_KEY` (clé publique anon ou publishable) dans l’environnement de production Cloudflare ou Netlify. `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_PUBLIC_KEY` sont aussi acceptés. Le serveur ne retourne que l’URL et une clé publique validée ; il ne lit ni ne retourne `SUPABASE_SERVICE_ROLE_KEY` pour cette route. Une clé secrète saisie par erreur dans le champ public est refusée. Redéployer après tout changement des variables Cloudflare.

@@ -15,3 +15,9 @@
   to = "/.netlify/functions/create-user"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/config"
+  status = 200
+  force = true

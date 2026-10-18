@@ -2,7 +2,7 @@ import {fields,totals,validateReport} from './domain.mjs';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kinshasa'}), date=s=>new Date(s.length===10?s+'T12:00:00Z':s).toLocaleDateString('fr-CD',{timeZone:'Africa/Kinshasa'}), fmt=(n,g=false)=>new Intl.NumberFormat('fr-CD',{maximumFractionDigits:g?3:2}).format(n);
 const labels=['Connexion totale','Argent M-pesa total','Commission M-pesa (%) totale','Montant achat or total','Poids or total'];
-const cfg=window.CAISSE_CONFIG||{},configured=Boolean(cfg.supabaseUrl&&cfg.supabaseKey),demo=false;
+let cfg=window.CAISSE_CONFIG||{},configured=Boolean(cfg.supabaseUrl&&cfg.supabaseKey);const demo=false;let configurationError='La connexion sera disponible après activation des comptes par votre responsable.';
 let db,profile,sites=[],periods=[],reports=[],editing=null,loading=false;
 const site=()=>sites.find(s=>s.id===$('#site').value), period=()=>periods.find(p=>p.site_id===site()?.id&&!p.closed_at), canReset=()=>['admin','super'].includes(profile?.role);
 function notice(s){$('#notice').textContent=s;}
@@ -28,9 +28,9 @@ $('#report-form').onsubmit=e=>{e.preventDefault();busy(async()=>{const r=Object.
 $('#reports').onclick=e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit){const r=reports.find(r=>r.id===edit.dataset.edit);editing=r.id;for(const k of ['report_date',...fields])$('#report-form').elements[k].value=r[k];$('#save').textContent='Enregistrer les modifications';$('#form-title').textContent='Modifier le rapport';$('#cancel-edit').hidden=false;$('#entry-panel').scrollIntoView({behavior:'smooth'});}if(del){if(confirm('Supprimer définitivement ce rapport ? Les cumuls seront recalculés.'))busy(async()=>{if(demo)reports=reports.filter(r=>r.id!==del.dataset.delete);else await result(db.from('reports').delete().eq('id',del.dataset.delete));clearEdit();await refresh();notice('Rapport supprimé.');});}};
 $('#reset').onclick=()=>{if(!period())return notice('Aucune période ouverte.');if(confirm(`Confirmer la collecte de toute la caisse de ${site().name} ? La période sera clôturée et les cumuls repartiront à zéro. Les rapports resteront dans l’historique.`))busy(async()=>{if(demo){const stamp=new Date().toISOString();Object.assign(period(),{closed_at:stamp,closed_by_name:profile.display_name});periods.push({id:crypto.randomUUID(),site_id:site().id,opened_at:stamp,closed_at:null});}else await result(db.rpc('close_period',{p_site:site().id,p_period:period().id}));clearEdit();await refresh();notice('Caisse clôturée. Une nouvelle période est ouverte.');});};
 async function openWorkspace(){profile=await result(db.from('profiles').select('*').eq('id',(await db.auth.getUser()).data.user.id).single());sites=await allRows('sites','name');$('#site').innerHTML=sites.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');$('#identity').textContent='Bienvenue, '+profile.display_name;document.body.classList.remove('public-page');$('#welcome').hidden=true;$('#accounts-nav').hidden=profile.role!=='super';$('#login').hidden=true;$('#workspace').hidden=false;$('#logout').hidden=false;clearEdit();await refresh();await loadAccounts();}
-$('#login-form').onsubmit=e=>{e.preventDefault();busy(async()=>{notice('');if(!configured)throw Error('La connexion sera disponible après activation des comptes par votre responsable.');const f=new FormData(e.target);const {error}=await db.auth.signInWithPassword({email:f.get('username').trim().toLowerCase().includes('@')?f.get('username').trim().toLowerCase():f.get('username').trim().toLowerCase()+'@users.caisse.invalid',password:f.get('password')});if(error)throw error;await openWorkspace();e.target.reset();});};$('#logout').onclick=()=>busy(async()=>{const {error}=await db.auth.signOut();if(error)throw error;location.reload();});
-$('#connect').onclick=()=>{$('#welcome').hidden=true;$('#login').hidden=false;$('#login-form').elements.username.focus();if(!configured)notice('La connexion sera disponible après activation des comptes par votre responsable.');};$('#back-welcome').onclick=()=>{$('#login').hidden=true;$('#welcome').hidden=false;};
-if(configured){busy(async()=>{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.49.1');db=createClient(cfg.supabaseUrl,cfg.supabaseKey);const {data,error}=await db.auth.getSession();if(error)throw error;if(data.session)await openWorkspace();else $('#welcome').hidden=false;}).then(()=>{if($('#workspace').hidden&&$('#login').hidden)$('#welcome').hidden=false;});}
+$('#login-form').onsubmit=e=>{e.preventDefault();busy(async()=>{notice('');if(!configured||!db)throw Error(configurationError);const f=new FormData(e.target);const {error}=await db.auth.signInWithPassword({email:f.get('username').trim().toLowerCase().includes('@')?f.get('username').trim().toLowerCase():f.get('username').trim().toLowerCase()+'@users.caisse.invalid',password:f.get('password')});if(error)throw error;await openWorkspace();e.target.reset();});};$('#logout').onclick=()=>busy(async()=>{const {error}=await db.auth.signOut();if(error)throw error;location.reload();});
+$('#connect').onclick=()=>{$('#welcome').hidden=true;$('#login').hidden=false;$('#login-form').elements.username.focus();if(!configured||!db)notice(configurationError);};$('#back-welcome').onclick=()=>{$('#login').hidden=true;$('#welcome').hidden=false;};
+
 
 async function loadAccounts(){if(profile.role!=='super')return;$('#account-site').innerHTML=sites.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');const accounts=demo?[]:await allRows('profiles','display_name');$('#account-list').innerHTML=accounts.map(a=>`<tr><td>${esc(a.username)}</td><td>${esc(a.display_name)}</td><td>${esc({site:'Site',admin:'Administrateur',super:'Super utilisateur'}[a.role])}</td><td>${esc(sites.find(s=>s.id===a.site_id)?.name||'Tous les sites')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Aucun compte réel dans cet aperçu.</td></tr>';}
 $('#account-form').elements.role.onchange=e=>{$('#account-site-label').hidden=e.target.value!=='site';};
@@ -38,3 +38,24 @@ $('#account-form').onsubmit=e=>{e.preventDefault();busy(async()=>{if(demo)throw 
 $('#site-form').onsubmit=e=>{e.preventDefault();busy(async()=>{if(demo)throw Error('Démonstration : la création des sites nécessite la base configurée.');await result(db.rpc('create_site',{p_name:new FormData(e.target).get('name')}));const selected=$('#site').value;sites=await allRows('sites','name');$('#site').innerHTML=sites.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');if(selected)$('#site').value=selected;await refresh();await loadAccounts();e.target.reset();notice('Site créé. Vous pouvez maintenant lui attribuer un compte.');});};
 
 const welcomePicture=document.querySelector('#welcome-picture');function showWelcomePicture(){if(welcomePicture.naturalWidth>0)welcomePicture.parentElement.classList.add('has-image');}welcomePicture.addEventListener('load',showWelcomePicture);showWelcomePicture();
+
+async function initializeConnection(){
+ await busy(async()=>{
+  if(!configured){
+   try{
+    const response=await fetch('/api/config',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok){configurationError=data.error||'La configuration de connexion doit être complétée.';return;}
+    cfg=data;configured=Boolean(cfg.supabaseUrl&&cfg.supabaseKey);
+   }catch{configurationError='Le service de connexion est indisponible. Actualisez la page ou contactez votre responsable.';return;}
+  }
+  if(!configured)return;
+  try{
+   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.49.1');
+   db=createClient(cfg.supabaseUrl,cfg.supabaseKey);
+   const {data,error}=await db.auth.getSession();if(error)throw error;
+   if(data.session)await openWorkspace();
+  }catch(error){configurationError='Impossible de charger la connexion : '+explain(error);notice(configurationError);}
+ });
+}
+initializeConnection();
