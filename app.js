@@ -12,7 +12,7 @@ function notice(s){$('#notice').textContent=s;}
 async function result(q){const {data,error}=await q;if(error)throw error;return data;}
 function explain(e){if(e.code==='23505')return 'Un rapport existe déjà pour cette date et ce site.';if(e.code==='42501')return 'Cette action n’est pas autorisée pour votre compte.';if(e.message?.includes('Invalid login'))return 'Identifiant ou mot de passe incorrect.';return e.message||'Une erreur est survenue.';}
 async function busy(fn){if(loading)return;loading=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){notice(explain(e));}finally{loading=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);}}
-function clearEdit(){editing=null;$('#report-form').reset();$('#report-form').elements.report_date.value=today();$('#save').textContent='+ Add · Ajouter le rapport';$('#cancel-edit').hidden=true;$('#form-title').textContent='Rapport journalier';}
+function clearEdit(){editing=null;$('#report-form').reset();$('#report-form').elements.report_date.value=today();$('#save').textContent='Ajouter le rapport';$('#cancel-edit').hidden=true;$('#form-title').textContent='Rapport journalier';}
 function render(){
  const all=canReset()&&$('#site').value==='__all__';
  const sid=all?null:site()?.id||'__none__';
