@@ -94,3 +94,7 @@ L’offre gratuite comporte des quotas. Ne pas activer d’offre payante sans d�
 ## Configuration publique chargée depuis l’hébergeur
 
 L’application peut désormais charger `/api/config` : définir `SUPABASE_URL` et `SUPABASE_ANON_KEY` (clé publique anon ou publishable) dans l’environnement de production Cloudflare ou Netlify. `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_PUBLIC_KEY` sont aussi acceptés. Le serveur ne retourne que l’URL et une clé publique validée ; il ne lit ni ne retourne `SUPABASE_SERVICE_ROLE_KEY` pour cette route. Une clé secrète saisie par erreur dans le champ public est refusée. Redéployer après tout changement des variables Cloudflare.
+
+## Saisir les jours précédents dans la première période
+
+Sur une base déjà installée, exécuter seulement `migrations/001-premiere-periode.sql` dans SQL Editor. Ne pas réexécuter `schema.sql`. Cette migration remplace la validation des dates sans supprimer de données. La première période accepte les dates passées ; toute période qui suit une clôture refuse les dates antérieures à son ouverture. Les dates futures et les doublons par jour/site restent interdits. Le début affiché tient compte du premier rapport antérieur saisi.

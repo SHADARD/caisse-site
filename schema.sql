@@ -11,7 +11,43 @@ create function public.limit_admins() returns trigger language plpgsql set searc
 create trigger limit_admins before insert or update on public.profiles for each row execute function public.limit_admins();
 create function public.initial_period() returns trigger language plpgsql security definer set search_path=public as $$begin insert into public.periods(site_id) values(new.id);return new;end$$;
 create trigger initial_period after insert on public.sites for each row execute function public.initial_period();
-create function public.validate_report_dates() returns trigger language plpgsql set search_path=public as $$declare p public.periods;begin select * into p from public.periods where id=new.period_id and site_id=new.site_id; if not found then raise exception 'Période introuvable.';end if;if new.report_date>(now() at time zone 'Africa/Kinshasa')::date or new.report_date<(p.opened_at at time zone 'Africa/Kinshasa')::date or (p.closed_at is not null and new.report_date>(p.closed_at at time zone 'Africa/Kinshasa')::date) then raise exception 'La date doit appartenir à la période et ne peut pas être future.';end if;if TG_OP='UPDATE' and (new.site_id<>old.site_id or new.period_id<>old.period_id or new.created_by<>old.created_by or new.created_at<>old.created_at) then raise exception 'Les informations de rattachement du rapport ne peuvent pas être modifiées.';end if;return new;end$$;
+create or replace function public.validate_report_dates()
+returns trigger
+language plpgsql
+set search_path=public
+as $
+declare
+  p public.periods;
+  has_previous boolean;
+begin
+  select * into p from public.periods
+  where id=new.period_id and site_id=new.site_id;
+  if not found then raise exception 'Période introuvable.'; end if;
+
+  select exists(
+    select 1 from public.periods previous
+    where previous.site_id=p.site_id
+      and previous.id<>p.id
+      and previous.closed_at is not null
+      and previous.closed_at<=p.opened_at
+  ) into has_previous;
+
+  if new.report_date>(now() at time zone 'Africa/Kinshasa')::date
+    or (has_previous and new.report_date<(p.opened_at at time zone 'Africa/Kinshasa')::date)
+    or (p.closed_at is not null and new.report_date>(p.closed_at at time zone 'Africa/Kinshasa')::date)
+  then
+    raise exception 'La date doit appartenir à la période et ne peut pas être future.';
+  end if;
+
+  if TG_OP='UPDATE' and
+    (new.site_id<>old.site_id or new.period_id<>old.period_id
+     or new.created_by<>old.created_by or new.created_at<>old.created_at)
+  then
+    raise exception 'Les informations de rattachement du rapport ne peuvent pas être modifiées.';
+  end if;
+  return new;
+end
+$;
 create trigger validate_report_dates before insert or update on public.reports for each row execute function public.validate_report_dates();
 create function public.add_report(p_site uuid,p_date date,p_connection numeric,p_mpesa numeric,p_commission numeric,p_gold_cost numeric,p_gold_weight numeric) returns uuid language plpgsql security definer set search_path=public as $$declare pid uuid;rid uuid;begin
  if not exists(select 1 from public.profiles where id=auth.uid() and (role='super' or (role='site' and site_id=p_site))) then raise exception 'Action non autorisée.' using errcode='42501';end if;
