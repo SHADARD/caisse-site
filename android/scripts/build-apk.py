@@ -32,7 +32,7 @@ unsigned=build/'unsigned.apk';shutil.copyfile(build/'resources.apk',unsigned)
 with zipfile.ZipFile(unsigned,'a',compression=zipfile.ZIP_DEFLATED) as z:
  for dex in (build/'dex').glob('*.dex'):z.write(dex,dex.name)
 run([sdk/'zipalign','-f','-p','4',unsigned,build/'aligned.apk'])
-output=root/'downloads/flamingo-network-v1.0.1.apk';output.parent.mkdir(exist_ok=True)
+output=root/'downloads/flamingo-network-v1.0.2.apk';output.parent.mkdir(exist_ok=True)
 run([sdk/'apksigner','sign','--key',key,'--cert',cert,'--out',output,build/'aligned.apk'])
 run([sdk/'apksigner','verify','--verbose','--print-certs',output])
 sha=hashlib.sha256(output.read_bytes()).hexdigest()

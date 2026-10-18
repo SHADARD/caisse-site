@@ -1,1 +1,1 @@
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:width="64dp" android:height="28.3dp" android:gravity="center"><bitmap android:src="@drawable/flamingo_logo" android:gravity="fill" android:filter="true"/></item></layer-list>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:width="163dp" android:height="72dp" android:gravity="center"><bitmap android:src="@drawable/flamingo_logo" android:gravity="fill" android:filter="true"/></item></layer-list>
