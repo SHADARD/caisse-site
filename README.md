@@ -102,3 +102,13 @@ Sur une base déjà installée, exécuter seulement `migrations/001-premiere-per
 ## Périodes mensuelles du 10 au 9
 
 Le tableau de bord des administrateurs et du super utilisateur distingue désormais les cumuls de caisse ouverte et le rapport mensuel du 10 au 9 inclus. Le choix du site ou « Tous les sites (All) » s’applique aux deux. Le rapport mensuel additionne les cinq champs de tous les rapports datés de cette période, même si leur caisse a été clôturée. Les rapports listés pour ces rôles suivent la période mensuelle sélectionnée et restent imprimables. Les périodes passées ayant des rapports sont sélectionnables. Aucun effacement ni reset mensuel automatique : un nouveau cycle commence par sélection de dates. Le calcul des parts des associés reste à définir. Les modifications/suppressions par le super utilisateur recalculent aussi les rapports mensuels concernés ; les totaux ne sont pas figés. Aucun changement SQL nécessaire.
+
+## Application Android
+
+Le bouton de l’accueil télécharge `downloads/flamingo-network-v1.0.0.apk`, une application Android signée qui ouvre la même plateforme HTTPS dans Android WebView. Elle reprend les interfaces, comptes, rôles, rapports, cumuls et historiques du site. Android 8 (API 26) minimum, cible API 35, Internet requis. Aucun mode de saisie hors connexion. Elle ne contient aucune clé Supabase privée. Les mises à jour du site s’affichent sans reconstruire l’APK ; un changement d’adresse, du conteneur natif ou de ses permissions nécessite une nouvelle version Android.
+
+Pour installer depuis le site : télécharger l’APK sur Android, l’ouvrir, puis autoriser ponctuellement l’installation depuis ce navigateur si Android le demande. Cette application n’est pas publiée sur Google Play et n’est pas installable sur iPhone.
+
+L’impression utilise le service d’impression Android ; selon l’appareil, le menu permet l’export PDF ou le choix d’une imprimante configurée. Les liens externes s’ouvrent dans le navigateur ; les pages de la plateforme restent dans l’application. La connexion et la session sont propres à l’application, distinctes de celles du navigateur.
+
+Sources et procédure de compilation : `android/README.md`. Les signatures v2 et v3 et le manifeste de l’APK ont été vérifiés. L’installation, le clavier, les dates, l’impression et la persistance de session doivent encore être validés sur un téléphone réel avant diffusion à tous les utilisateurs.

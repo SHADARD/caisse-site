@@ -6,3 +6,8 @@ node_modules/
 dist/
 .wrangler/
 .dev.vars
+android/build/
+*.jks
+*.keystore
+*.pk8
+*.pem

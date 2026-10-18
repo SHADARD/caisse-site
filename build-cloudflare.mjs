@@ -9,3 +9,8 @@ for(const name of ['index.html','style.css','app.js','domain.mjs','config.js','_
 try {await copyFile(new URL('image1.jpg',import.meta.url),new URL('image1.jpg',directory));}
 catch(error){if(error.code!=='ENOENT')throw error;}
 console.log('Fichiers publics préparés dans '+fileURLToPath(directory));
+
+await mkdir(new URL('downloads/',directory),{recursive:true});
+for(const name of ['flamingo-network-v1.0.0.apk','flamingo-network-v1.0.0.apk.sha256']){
+ await copyFile(new URL('downloads/'+name,import.meta.url),new URL('downloads/'+name,directory));
+}

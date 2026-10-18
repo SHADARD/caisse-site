@@ -90,3 +90,5 @@ async function initializeConnection(){
  });
 }
 initializeConnection();
+
+if(/FlamingoAndroid\//.test(navigator.userAgent)){const card=document.querySelector('#android-download-card');if(card)card.hidden=true;}
