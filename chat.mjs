@@ -1,11 +1,13 @@
 // Chargement à la demande : une panne de messagerie ne bloque jamais la connexion.
 const PAGE=80;
 const stamp=value=>new Date(value).toLocaleString('fr-CD',{timeZone:'Africa/Kinshasa',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-export function createChat({client,profile}){
+export function createChat({client,profile,initialUnread={},onRead=()=>{}}){
  const $=id=>document.getElementById(id);
  const status=$('chat-status'),list=$('chat-messages'),body=$('chat-body'),form=$('chat-form');
  let people=[],recipient=null,messages=[],older=false,active=false,destroyed=false,loading=false,sending=false,channel=null,timer=null,version=0,pending=null;
- const drafts=new Map();
+ const drafts=new Map();let unread=initialUnread,readTimer=null;
+ function markVisible(){if(active&&!destroyed&&!document.hidden&&messages.length&&list.scrollHeight-list.scrollTop-list.clientHeight<80)void onRead(recipient,messages[messages.length-1].id);}
+ function addBadge(button,count){if(!count)return;const badge=document.createElement('span');badge.className='chat-count';badge.textContent=count>99?'99+':String(count);badge.setAttribute('aria-label',count+' messages non lus');button.append(badge);}
  function say(text,error=false){status.textContent=text;status.dataset.error=String(error);}
  async function query(request){let timer;try{const result=await Promise.race([Promise.resolve(request),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('La messagerie ne répond pas. Votre brouillon est conservé.')),18000);})]);if(result.error)throw result.error;return result.data;}finally{clearTimeout(timer);}}
  function name(id){return people.find(p=>p.id===id)?.display_name||'Membre Flamingo';}
@@ -14,10 +16,10 @@ export function createChat({client,profile}){
   const search=$('chat-search').value.trim().toLocaleLowerCase();const fragment=document.createDocumentFragment();
   for(const person of people.filter(p=>p.id!==profile.id&&p.display_name.toLocaleLowerCase().includes(search)).sort((a,b)=>Number(b.is_active)-Number(a.is_active)||a.display_name.localeCompare(b.display_name,'fr'))){
    const button=document.createElement('button');button.type='button';button.className='chat-contact'+(recipient===person.id?' active':'');button.textContent=person.display_name;button.dataset.person=person.id;button.setAttribute('aria-pressed',String(recipient===person.id));
-   if(!person.is_active){const hint=document.createElement('small');hint.textContent='Compte désactivé · historique';button.append(hint);}fragment.append(button);
+   if(!person.is_active){const hint=document.createElement('small');hint.textContent='Compte désactivé · historique';button.append(hint);}addBadge(button,unread[person.id]);fragment.append(button);
   }
   if(!fragment.childNodes.length){const empty=document.createElement('p');empty.textContent='Aucun collègue trouvé.';fragment.append(empty);}
-  $('chat-people').replaceChildren(fragment);$('chat-general').classList.toggle('active',recipient===null);$('chat-general').setAttribute('aria-pressed',String(recipient===null));
+  $('chat-people').replaceChildren(fragment);$('chat-general').classList.toggle('active',recipient===null);$('chat-general').setAttribute('aria-pressed',String(recipient===null));const badge=$('chat-general-unread');if(badge){const count=unread.general||0;badge.textContent=count>99?'99+':String(count);badge.hidden=!count;}
  }
  function heading(){
   $('chat-title').textContent=recipient===null?'Groupe général':name(recipient);
@@ -35,6 +37,7 @@ export function createChat({client,profile}){
   if(!messages.length){const empty=document.createElement('p');empty.className='empty';empty.textContent=recipient===null?'Commencez la discussion avec toute l’équipe.':'Aucun message privé pour le moment.';fragment.append(empty);}
   list.replaceChildren(fragment);$('chat-older').hidden=!older;
   if(bottom||nearBottom)list.scrollTop=list.scrollHeight;else list.scrollTop=oldTop+Math.max(0,list.scrollHeight-oldHeight);
+  clearTimeout(readTimer);readTimer=setTimeout(markVisible,150);
  }
  function merge(rows){const data=new Map(messages.map(m=>[m.id,m]));for(const m of rows)data.set(m.id,m);messages=[...data.values()].sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));}
  function selectedRequest(){
@@ -93,6 +96,7 @@ export function createChat({client,profile}){
   }catch(error){if(!destroyed&&selected===version)say('Message non envoyé. Votre brouillon est conservé. '+(error.message||'Réessayez.'),true);}
   finally{sending=false;if(!destroyed)heading();}
  };
+ list.onscroll=()=>{clearTimeout(readTimer);readTimer=setTimeout(markVisible,150);};
  document.addEventListener('visibilitychange',onVisible);
- return{show,hide,destroy(){destroyed=true;hide();body.value='';messages=[];list.replaceChildren();$('chat-people').replaceChildren();drafts.clear();document.removeEventListener('visibilitychange',onVisible);}};
+ return{show,hide,updateUnread(counts){unread=counts;renderPeople();markVisible();},destroy(){clearTimeout(readTimer);destroyed=true;hide();body.value='';messages=[];list.replaceChildren();$('chat-people').replaceChildren();drafts.clear();document.removeEventListener('visibilitychange',onVisible);}};
 }

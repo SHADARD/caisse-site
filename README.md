@@ -162,3 +162,13 @@ L’onglet Messages charge son module à la demande afin de garder la connexion 
 La clôture ou réinitialisation des rapports n’efface pas les conversations. Les sauvegardes mensuelles actuelles concernent les données de gestion, pas les messages. Les appels audio/vidéo et le partage d’écran ne sont pas inclus dans cette livraison ; le besoin prévu est de 6 à 15 participants.
 
 Vérification PostgreSQL : `PGLITE_MODULE=/CHEMIN/pglite/dist/index.js node tests/chat-database-check.mjs`. Vérification navigateur locale : `node tests/chat-browser-check.cjs` (Playwright + Chromium). Ces tests ne publient aucun message dans la base réelle.
+
+### Compteurs de messages non lus
+
+Une pastille rouge sur « Messages » additionne les messages entrants non lus du groupe général et des conversations privées. Le détail est affiché sur chaque conversation ; les messages envoyés par soi-même sont exclus. L’affichage passe à « 99+ » au-delà de 99 et disparaît à zéro.
+
+La migration `supabase/migrations/20261022174631_chat_unread_badges.sql` conserve un curseur de lecture par compte et par conversation, protégé par RLS. Les fonctions de comptage et de lecture utilisent les droits de l’appelant (SECURITY INVOKER) ; une lecture ne peut pas viser un message privé inaccessible. Le curseur ne peut pas reculer lorsqu’une requête arrive en retard. Les états lus sont synchronisés entre les appareils connectés au même compte.
+
+Le compteur écoute les nouveaux messages même depuis le tableau de bord, avec reprise toutes les 20 secondes pendant l’utilisation de l’application. La lecture est enregistrée lorsque la conversation est affichée dans un onglet visible et que la liste est en bas. Les compteurs ne constituent pas des notifications système quand l’application est fermée.
+
+Tests : `tests/chat-unread-database-check.mjs` avec PGlite et `tests/chat-unread-browser-check.cjs` avec Playwright/Chromium.
