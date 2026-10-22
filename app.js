@@ -142,7 +142,7 @@ async function openChat(){
  const owner=profile;if(!owner||$('#workspace').hidden)return;
  try{
   if(!chatController){
-   if(!chatPromise)chatPromise=import('./chat.mjs?v=unread-1').then(({createChat})=>profile?.id===owner.id&&!$('#workspace').hidden?createChat({client:db,profile:owner,initialUnread:chatCounts,onRead:(peer,id)=>notificationController?.markRead(peer,id)}):null).finally(()=>{chatPromise=null;});
+   if(!chatPromise)chatPromise=import('./chat.mjs?v=files-1').then(({createChat})=>profile?.id===owner.id&&!$('#workspace').hidden?createChat({client:db,profile:owner,initialUnread:chatCounts,onRead:(peer,id)=>notificationController?.markRead(peer,id)}):null).finally(()=>{chatPromise=null;});
    chatController=await chatPromise;
   }
   if(chatController&&profile?.id===owner.id&&!$('#workspace').hidden&&!$('#chat').hidden)await chatController.show();

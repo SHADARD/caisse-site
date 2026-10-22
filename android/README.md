@@ -1,8 +1,8 @@
-# Flamingo Network — Android 1.0.3
+# Flamingo Network — Android 1.0.4
 
 Application Android native Java avec Android WebView. Identifiant : `com.flamingo.network`. URL fixe : `https://caisse-site.pages.dev/`. API minimale 26 (Android 8), cible 35. Permission demandée : Internet uniquement. Aucune autorisation de caméra, contacts ou stockage global. L’application charge les mêmes interfaces et conserve les sessions dans le stockage privé WebView. Le bouton de téléchargement n’est pas affiché à l’intérieur de l’application.
 
-Les navigations de premier niveau restent sur l’origine HTTPS de la plateforme. Les autres liens HTTPS et mailto s’ouvrent dans une application externe ; les autres schémas sont bloqués. Les erreurs SSL sont refusées. L’accès aux fichiers locaux et au contenu local et le contenu HTTP mixte sont désactivés. L’impression native est limitée à la plateforme. La fonctionnalité native ne remplace pas les permissions Supabase.
+Les navigations de premier niveau restent sur l’origine HTTPS de la plateforme. Les autres liens HTTPS et mailto s’ouvrent dans une application externe ; les autres schémas sont bloqués. Les erreurs SSL sont refusées. L’accès aux fichiers file:// et le contenu HTTP mixte sont désactivés. L’accès content:// est limité par les autorisations Android aux documents explicitement choisis dans le sélecteur système. L’impression native est limitée à la plateforme. La fonctionnalité native ne remplace pas les permissions Supabase.
 
 ## Compilation
 
@@ -41,3 +41,7 @@ VersionCode 2. Icône adaptative contenant l’image Flamingo SARL fournie, sans
 ### Version 1.0.3
 
 VersionCode 4. L’icône dispose désormais de dimensions intrinsèques carrées (108 × 108 dp), avec un fond rouge plein et le logo original centré. Une ressource de repli carrée complète l’icône adaptative. Cela corrige les lanceurs OEM qui affichaient la bannière comme une petite icône rectangulaire. Installation en mise à jour avec la même signature ; aucune désinstallation nécessaire.
+
+### Version 1.0.4
+
+VersionCode 5. Sélecteur de fichiers Android ACTION_OPEN_DOCUMENT pour les pièces jointes du chat. Seules les URI content:// choisies explicitement par la personne sont transmises à la page HTTPS Flamingo. Aucun droit global de lecture du stockage ni accès caméra n’est demandé. Même signature que les versions précédentes. Le téléversement utilise les autorisations de conversation Supabase, et les liens de fichiers s’ouvrent dans une application externe.

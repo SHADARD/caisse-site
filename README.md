@@ -172,3 +172,17 @@ La migration `supabase/migrations/20261022174631_chat_unread_badges.sql` conserv
 Le compteur écoute les nouveaux messages même depuis le tableau de bord, avec reprise toutes les 20 secondes pendant l’utilisation de l’application. La lecture est enregistrée lorsque la conversation est affichée dans un onglet visible et que la liste est en bas. Les compteurs ne constituent pas des notifications système quand l’application est fermée.
 
 Tests : `tests/chat-unread-database-check.mjs` avec PGlite et `tests/chat-unread-browser-check.cjs` avec Playwright/Chromium.
+
+## Pièces jointes du chat
+
+La migration `supabase/migrations/20261022181052_chat_attachments.sql` ajoute une pièce jointe facultative par message, avec légende facultative, et un bucket privé `chat-attachments`. Photos JPEG, PNG, WebP, GIF, HEIC/HEIF, PDF, documents Word/Excel/PowerPoint, TXT et CSV ; 10 Mo maximum par fichier. HTML, SVG, exécutables et archives ne sont pas acceptés. Les photos compatibles sont prévisualisées ; les documents disposent d’un lien de téléchargement.
+
+Le fichier est chargé avant le message. La base vérifie le chemin propre à l’expéditeur et au message, l’existence réelle de l’objet et la correspondance du type et de la taille. Les métadonnées seules ne suffisent pas. Un objet envoyé ne peut plus être remplacé ni supprimé par les utilisateurs. Les brouillons non associés à un message peuvent être nettoyés par leur propriétaire ; un chargement interrompu par une fermeture de navigateur peut laisser un objet privé orphelin, à gérer lors de la maintenance du stockage.
+
+Seul l’expéditeur peut lire le fichier avant envoi. Après envoi, les politiques du message déterminent les accès : tous les comptes actifs pour le groupe général, uniquement les deux correspondants pour un message privé. Les administrateurs n’obtiennent aucun accès supplémentaire aux pièces jointes privées. Les URL signées expirent après 5 minutes ; elles ne sont pas publiques permanentes. Les fichiers utilisent le quota du stockage Supabase et ne sont pas inclus dans la sauvegarde mensuelle des rapports de gestion.
+
+Le brouillon et le fichier restent disponibles si l’envoi échoue ; la reprise réutilise l’identifiant et le chargement existants pour éviter les doublons. Le délai réseau de chargement est de 2 minutes maximum, contre 15 secondes pour les requêtes ordinaires.
+
+L’APK 1.0.4 ajoute le sélecteur natif de documents Android, sans nouvelle permission générale de stockage ni accès caméra. Installer la mise à jour avec la même signature pour joindre un fichier depuis l’APK. Sur navigateur Android/iPhone/ordinateur, le sélecteur standard est utilisé.
+
+Tests : `tests/chat-files.test.mjs`, `tests/chat-attachments-database-check.mjs` (PGlite) et `tests/chat-attachments-browser-check.cjs` (Playwright). Aucun fichier ni message de test n’est envoyé dans une conversation réelle.

@@ -19,6 +19,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -37,6 +38,8 @@ public final class MainActivity extends Activity {
     private ProgressBar progress;
     private LinearLayout errorPanel;
     private boolean failed;
+    private ValueCallback<Uri[]> fileCallback;
+    private static final int PICK_FILE = 7001;
 
     private static boolean trusted(String url) {
         if (url == null) return false;
@@ -72,11 +75,11 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
+        settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSafeBrowsingEnabled(true);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " FlamingoAndroid/1.0.3");
+        settings.setUserAgentString(settings.getUserAgentString() + " FlamingoAndroid/1.0.4");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
         web.addJavascriptInterface(new PrintBridge(), "FlamingoPrint");
@@ -107,6 +110,19 @@ public final class MainActivity extends Activity {
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (!trusted(view.getUrl())) { callback.onReceiveValue(null); return true; }
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("*/*");
+                picker.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation","text/plain","text/csv"});
+                try { startActivityForResult(picker, PICK_FILE); }
+                catch (ActivityNotFoundException e) { fileCallback.onReceiveValue(null); fileCallback = null; Toast.makeText(MainActivity.this, "Aucun sélecteur de fichiers disponible.", Toast.LENGTH_LONG).show(); }
+                return true;
+            }
+
             @Override public void onProgressChanged(WebView view, int value) { progress.setProgress(value); }
             @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
                 if (!trusted(url)) { result.cancel(); return true; }
@@ -158,11 +174,19 @@ public final class MainActivity extends Activity {
             });
         }
     }
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_FILE || fileCallback == null) return;
+        Uri uri = resultCode == RESULT_OK && data != null ? data.getData() : null;
+        // Seuls les documents explicitement sélectionnés dans le sélecteur Android sont transmis.
+        fileCallback.onReceiveValue(uri != null && "content".equals(uri.getScheme()) ? new Uri[]{uri} : null);
+        fileCallback = null;
+    }
     @Override public void onSaveInstanceState(Bundle state) { web.saveState(state); super.onSaveInstanceState(state); }
     @Override public void onBackPressed() {
         if (web.canGoBack()) web.goBack();
         else new AlertDialog.Builder(this).setTitle("Quitter Flamingo Network ?")
             .setPositiveButton("Quitter", (dialog, which) -> finish()).setNegativeButton("Rester", null).show();
     }
-    @Override public void onDestroy() { web.removeJavascriptInterface("FlamingoPrint"); web.destroy(); super.onDestroy(); }
+    @Override public void onDestroy() { if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; } web.removeJavascriptInterface("FlamingoPrint"); web.destroy(); super.onDestroy(); }
 }

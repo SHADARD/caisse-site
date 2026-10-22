@@ -10,7 +10,8 @@ export function clearProjectSession(url){
 export async function networkFetch(input,options={},timeout=15000){
  const controller=new AbortController();const parent=options.signal;const abort=()=>controller.abort();
  if(parent?.aborted)abort();else parent?.addEventListener('abort',abort,{once:true});
- const timer=setTimeout(abort,timeout);
+ const uploading=options.method?.toUpperCase()==='POST'&&String(input).includes('/storage/v1/object/chat-attachments/');
+ const timer=setTimeout(abort,uploading?120000:timeout);
  try{return await fetch(input,{...options,signal:controller.signal});}
  finally{clearTimeout(timer);parent?.removeEventListener('abort',abort);}
 }
