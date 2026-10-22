@@ -150,3 +150,15 @@ Le SDK Supabase 2.49.1 est désormais livré sous `vendor/`, avec sa licence MIT
 « Déconnexion » reste accessible pendant le chargement des données. L’action efface uniquement les clés de session de ce projet sur cet appareil et tente la révocation serveur de cette session pendant 3 secondes maximum. Si l’appareil est hors ligne, la session locale est effacée mais la révocation distante ne peut pas être garantie ; les autres appareils ne sont pas déconnectés. Aucun compte ni rapport n’est supprimé.
 
 Test navigateur `tests/auth-session-browser-check.cjs` : véritable SDK livré, serveur Auth simulé, ancien verrou retenu indéfiniment, connexion réussie, déconnexion sans réseau, anciennes clés supprimées et stockage d’une autre application conservé.
+
+## Messagerie interne : groupe général et messages privés
+
+La migration `supabase/migrations/20261022172239_general_and_private_chat.sql` crée un répertoire limité aux noms affichés et aux états actif/inactif, synchronisé avec les comptes, et les messages protégés par RLS. Aucun identifiant de connexion, e-mail ou mot de passe n’est exposé dans ce répertoire.
+
+Tous les comptes actifs participent au groupe général. Un message privé est lisible uniquement par l’expéditeur et le destinataire, y compris pour les comptes administrateurs et super utilisateur : ces rôles ne permettent pas de lire les messages privés des autres. L’expéditeur et l’heure sont imposés par la base ; les utilisateurs ne peuvent modifier ni supprimer les messages. Les comptes désactivés ne peuvent plus lire ou envoyer de nouveaux messages. Leurs messages restent dans l’historique des correspondants.
+
+L’onglet Messages charge son module à la demande afin de garder la connexion indépendante du chat. Les nouveaux messages utilisent Supabase Realtime avec les mêmes politiques RLS ; une actualisation toutes les 20 secondes et un bouton manuel assurent la reprise en cas de coupure. Le chargement s’arrête lorsque la messagerie est masquée. Historique paginé (80 messages), brouillon conservé en cas d’échec et identifiant stable pour éviter un doublon à la reprise. Le contenu est affiché comme du texte, sans interprétation HTML. Internet est nécessaire ; aucune notification système ni chiffrement de bout en bout n’est proposé dans cette version.
+
+La clôture ou réinitialisation des rapports n’efface pas les conversations. Les sauvegardes mensuelles actuelles concernent les données de gestion, pas les messages. Les appels audio/vidéo et le partage d’écran ne sont pas inclus dans cette livraison ; le besoin prévu est de 6 à 15 participants.
+
+Vérification PostgreSQL : `PGLITE_MODULE=/CHEMIN/pglite/dist/index.js node tests/chat-database-check.mjs`. Vérification navigateur locale : `node tests/chat-browser-check.cjs` (Playwright + Chromium). Ces tests ne publient aucun message dans la base réelle.
